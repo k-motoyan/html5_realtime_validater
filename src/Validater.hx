@@ -1,12 +1,12 @@
 package ;
 
+import custom.Same;
 import haxe.Json;
-import js.Browser;
-import js.html.Element;
+import js.html.ButtonElement;
 import js.html.Event;
-import js.html.Node;
+import js.html.FormElement;
+import js.html.InputElement;
 import js.html.NodeList;
-import externs.HTML5Element;
 
 typedef ValidaterConfig = {
     ?delay: Int
@@ -20,6 +20,7 @@ typedef ValidateMsgDataMap = {
     ?type: String,
     ?step: String,
     ?pattern: String,
+    ?same: String,
     ?custom: String
 }
 
@@ -34,58 +35,60 @@ class Validater {
         delay: 100
     };
 
-    private var form: HTML5Element;
+    private var form: FormElement;
 
     private var inputs: NodeList;
 
-    private var submit: Element;
+    private var submit: ButtonElement;
 
-    public function new(form: Element, input_class: String) {
-        this.form   = untyped form;
-        this.inputs = form.querySelectorAll(input_class);
-        this.submit = form.querySelector("button[type=submit]");
+    public function new(form: FormElement, inputs: NodeList) {
+        this.form   = form;
+        this.inputs = inputs;
+        this.submit = HTMLTypeCast.ElementToButtonElement( form.querySelector("button[type=submit]") );
         this.setConfig(form);
     }
 
-    private function setConfig(form: Element): Void {
-        if (Type.typeof(untyped form.dataset.html5ValidaterConfig) == TNull) return;
-        
-        var config: ValidaterConfig = Json.parse( untyped form.dataset.html5ValidaterConfig );
-        if (Type.typeof(config.delay) == TNull) Validater.config.delay = config.delay;
+    private inline function setConfig(form: FormElement): Void {
+        var config: ValidaterConfig = Json.parse( form.getAttribute("data-html5-validater-config") );
+        if (Type.typeof(config) != TNull && Type.typeof(config.delay) == TNull) Validater.config.delay = config.delay;
     }
 
     public function set(): Void {
         this.submit.setAttribute("disabled", "");
         for (input in this.inputs) {
-            input.addEventListener("input", attacheValidateEvent, false);
+            HTMLTypeCast.NodeToInputElement(input).addEventListener("input", attacheValidateEvent, false);
         }
     }
 
     private inline function attacheValidateEvent(e: Event): Void {
-        Utils.groupSetAttribute(this.inputs, "disabled", "", validate.bind( untyped e.target ));
+        Utils.groupSetAttribute(this.inputs, "disabled", "", validate.bind( HTMLTypeCast.EventTargetToInputElement(e.target) ));
         Utils.groupRemoveAttribute(this.inputs, "disabled");
         if (true == this.form.checkValidity()) this.submit.removeAttribute("disabled");
     }
 
-    private inline function validate(element: HTML5Element): Void {
+    private inline function validate(element: InputElement): Void {
         element.removeAttribute("disabled");
         element.setCustomValidity( getValidityMessage(element) );
-
-        if (false == element.checkValidity()) {
-            this.submit.removeAttribute("disabled");
-            this.submit.click();
-            this.submit.setAttribute("disabled", "");
-        }
+        if (false == element.checkValidity()) this.clickSubmit();
     }
 
-    private inline function getValidityMessage(element: HTML5Element): String {
+    private inline function clickSubmit(): Void {
+        this.submit.removeAttribute("disabled");
+        this.submit.click();
+        this.submit.setAttribute("disabled", "");
+    }
+
+    private inline function getValidityMessage(element: InputElement): String {
         var messages: ValidateMsgDataMap =
-        if (Type.typeof(untyped element.dataset.validateMsg) != TNull) {
-            Json.parse(untyped element.dataset.validateMsg);
+        if (Type.typeof( element.getAttribute("data-validate-msg") ) != TNull) {
+            Json.parse( element.getAttribute("data-validate-msg") );
         } else {
             {};
         }
-
+        return this.getValidateCaseByMessage(element, messages);
+    }
+    
+    private inline function getValidateCaseByMessage(element: InputElement, messages: ValidateMsgDataMap): String {
         return if (true == element.validity.valueMissing && Type.typeof(messages.required) != TNull) {
             messages.required;
         } else if (true == element.validity.typeMismatch && Type.typeof(messages.type) != TNull) {
@@ -100,6 +103,8 @@ class Validater {
             messages.step;
         } else if (true == element.validity.tooLong && Type.typeof(messages.maxlength) != TNull) {
             messages.maxlength;
+        } else if (true == Same.validity(element) && Type.typeof(messages.same) != TNull) {
+            messages.same;
         } else if (true == element.validity.customError && Type.typeof(messages.custom) != TNull) {
             messages.custom;
         } else {

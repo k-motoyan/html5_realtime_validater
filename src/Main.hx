@@ -13,8 +13,15 @@ class Main {
     private static var input_class: String = ".html5-validation-input";
 
     public static function main(): Void {
-        for (node in Browser.document.querySelectorAll(form_class)) {
-            new Validater(Utils.NodeToElement(node), input_class).set();
+        try {
+            for (form in Browser.document.querySelectorAll(form_class)) {
+                new Validater(
+                    HTMLTypeCast.NodeToFormElement(form),
+                    Browser.document.querySelectorAll(input_class)
+                ).set();
+            }
+        } catch (msg: String) {
+            trace("Error: " + msg);
         }
     }
 }

@@ -1,5 +1,25 @@
 (function () { "use strict";
 var $estr = function() { return js.Boot.__string_rec(this,''); };
+var HTMLTypeCast = function() { }
+HTMLTypeCast.__name__ = true;
+HTMLTypeCast.NodeToElement = function(node) {
+	return node;
+}
+HTMLTypeCast.NodeToInputElement = function(node) {
+	return node;
+}
+HTMLTypeCast.NodeToFormElement = function(node) {
+	return node;
+}
+HTMLTypeCast.ElementToInputElement = function(element) {
+	return element;
+}
+HTMLTypeCast.ElementToButtonElement = function(element) {
+	return element;
+}
+HTMLTypeCast.EventTargetToInputElement = function(target) {
+	return target;
+}
 var HxOverrides = function() { }
 HxOverrides.__name__ = true;
 HxOverrides.cca = function(s,index) {
@@ -20,11 +40,17 @@ var Main = function() { }
 $hxExpose(Main, "HTML5RealtimeValidater");
 Main.__name__ = true;
 Main.main = function() {
-	var _g = 0, _g1 = js.Browser.document.querySelectorAll(Main.form_class);
-	while(_g < _g1.length) {
-		var node = _g1[_g];
-		++_g;
-		new Validater(node,Main.input_class).set();
+	try {
+		var _g = 0, _g1 = js.Browser.document.querySelectorAll(Main.form_class);
+		while(_g < _g1.length) {
+			var form = _g1[_g];
+			++_g;
+			new Validater(form,js.Browser.document.querySelectorAll(Main.input_class)).set();
+		}
+	} catch( msg ) {
+		if( js.Boot.__instanceof(msg,String) ) {
+			console.log("Error: " + msg);
+		} else throw(msg);
 	}
 }
 var Std = function() { }
@@ -102,38 +128,43 @@ Type["typeof"] = function(v) {
 }
 var Utils = function() { }
 Utils.__name__ = true;
-Utils.groupSetAttribute = function(elements,attr,val,cb) {
+Utils.groupSetAttribute = function(node_list,attr,val,cb) {
 	var _g = 0;
-	while(_g < elements.length) {
-		var node = elements[_g];
+	while(_g < node_list.length) {
+		var node = node_list[_g];
 		++_g;
 		node.setAttribute(attr,val);
 	}
 	if(Type["typeof"](cb) != ValueType.TNull) cb();
 }
-Utils.groupRemoveAttribute = function(elements,attr,cb) {
+Utils.groupRemoveAttribute = function(node_list,attr,cb) {
 	var _g = 0;
-	while(_g < elements.length) {
-		var node = elements[_g];
+	while(_g < node_list.length) {
+		var node = node_list[_g];
 		++_g;
 		node.removeAttribute(attr);
 	}
 	if(Type["typeof"](cb) != ValueType.TNull) cb();
 }
-Utils.NodeToElement = function(node) {
-	return node;
-}
-var Validater = function(form,input_class) {
+var Validater = function(form,inputs) {
 	this.form = form;
-	this.inputs = form.querySelectorAll(input_class);
+	this.inputs = inputs;
 	this.submit = form.querySelector("button[type=submit]");
 	this.setConfig(form);
 };
 Validater.__name__ = true;
 Validater.prototype = {
-	getValidityMessage: function(element) {
-		var messages = Type["typeof"](element.dataset.validateMsg) != ValueType.TNull?haxe.Json.parse(element.dataset.validateMsg):{ };
-		return true == element.validity.valueMissing && Type["typeof"](messages.required) != ValueType.TNull?messages.required:true == element.validity.typeMismatch && Type["typeof"](messages.type) != ValueType.TNull?messages.type:true == element.validity.patternMismatch && Type["typeof"](messages.pattern) != ValueType.TNull?messages.pattern:true == element.validity.rangeUnderflow && Type["typeof"](messages.min) != ValueType.TNull?messages.min:true == element.validity.rangeOverflow && Type["typeof"](messages.max) != ValueType.TNull?messages.max:true == element.validity.stepMismatch && Type["typeof"](messages.step) != ValueType.TNull?messages.step:true == element.validity.tooLong && Type["typeof"](messages.maxlength) != ValueType.TNull?messages.maxlength:true == element.validity.customError && Type["typeof"](messages.custom) != ValueType.TNull?messages.custom:"";
+	getValidateCaseByMessage: function(element,messages) {
+		return true == element.validity.valueMissing && Type["typeof"](messages.required) != ValueType.TNull?messages.required:true == element.validity.typeMismatch && Type["typeof"](messages.type) != ValueType.TNull?messages.type:true == element.validity.patternMismatch && Type["typeof"](messages.pattern) != ValueType.TNull?messages.pattern:true == element.validity.rangeUnderflow && Type["typeof"](messages.min) != ValueType.TNull?messages.min:true == element.validity.rangeOverflow && Type["typeof"](messages.max) != ValueType.TNull?messages.max:true == element.validity.stepMismatch && Type["typeof"](messages.step) != ValueType.TNull?messages.step:true == element.validity.tooLong && Type["typeof"](messages.maxlength) != ValueType.TNull?messages.maxlength:true == custom.Same.validity(element) && Type["typeof"](messages.same) != ValueType.TNull?messages.same:true == element.validity.customError && Type["typeof"](messages.custom) != ValueType.TNull?messages.custom:"";
+	}
+	,getValidityMessage: function(element) {
+		var messages = Type["typeof"](element.getAttribute("data-validate-msg")) != ValueType.TNull?haxe.Json.parse(element.getAttribute("data-validate-msg")):{ };
+		return true == element.validity.valueMissing && Type["typeof"](messages.required) != ValueType.TNull?messages.required:true == element.validity.typeMismatch && Type["typeof"](messages.type) != ValueType.TNull?messages.type:true == element.validity.patternMismatch && Type["typeof"](messages.pattern) != ValueType.TNull?messages.pattern:true == element.validity.rangeUnderflow && Type["typeof"](messages.min) != ValueType.TNull?messages.min:true == element.validity.rangeOverflow && Type["typeof"](messages.max) != ValueType.TNull?messages.max:true == element.validity.stepMismatch && Type["typeof"](messages.step) != ValueType.TNull?messages.step:true == element.validity.tooLong && Type["typeof"](messages.maxlength) != ValueType.TNull?messages.maxlength:true == custom.Same.validity(element) && Type["typeof"](messages.same) != ValueType.TNull?messages.same:true == element.validity.customError && Type["typeof"](messages.custom) != ValueType.TNull?messages.custom:"";
+	}
+	,clickSubmit: function() {
+		this.submit.removeAttribute("disabled");
+		this.submit.click();
+		this.submit.setAttribute("disabled","");
 	}
 	,validate: function(element) {
 		element.removeAttribute("disabled");
@@ -163,11 +194,20 @@ Validater.prototype = {
 		}
 	}
 	,setConfig: function(form) {
-		if(Type["typeof"](form.dataset.html5ValidaterConfig) == ValueType.TNull) return;
-		var config = haxe.Json.parse(form.dataset.html5ValidaterConfig);
-		if(Type["typeof"](config.delay) == ValueType.TNull) Validater.config.delay = config.delay;
+		var config = haxe.Json.parse(form.getAttribute("data-html5-validater-config"));
+		if(Type["typeof"](config) != ValueType.TNull && Type["typeof"](config.delay) == ValueType.TNull) Validater.config.delay = config.delay;
 	}
 	,__class__: Validater
+}
+var custom = {}
+custom.Same = function() { }
+custom.Same.__name__ = true;
+custom.Same.validity = function(element) {
+	if(false == element.hasAttribute("same")) return false;
+	var target = js.Browser.document.getElementById(element.getAttribute("same"));
+	if(Type["typeof"](target) == ValueType.TNull) throw "validity \"same\" target id not found.";
+	if(element.value == target.value) return false;
+	return true;
 }
 var haxe = {}
 haxe.Json = function() {
