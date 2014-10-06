@@ -34,5 +34,6 @@ HTML5の機能を利用したリアルタイムバリデーションを実現す
     type="password" class="html5-validation-input" id="pass">
   <input
     type="password" class="html5-validation-input" id="password_confirm"
-    same="pass" data-validate-msg='{"same":"not same password."}'></form>
+    same="pass" data-validate-msg='{"same":"not same password."}'>
+</form>
 ```
